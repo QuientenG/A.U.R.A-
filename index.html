@@ -1,68 +1,272 @@
-<script>
-    const chatContainer = document.getElementById('chat-container');
-    const userInput = document.getElementById('user-input');
-    const sendBtn = document.getElementById('send-btn');
-    const typingIndicator = document.getElementById('typing');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS // AI Terminal</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(17, 25, 40, 0.75);
+            --border-glow: #3b82f6;
+            --user-msg: linear-gradient(135deg, #2563eb, #3b82f6);
+            --ai-msg: rgba(30, 41, 59, 0.8);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
 
-    // WARNING: Keep your GitHub repo PRIVATE if you put a key here!
-    const API_KEY = 'sk-abcdef1234567890abcdef1234567890abcdef12'; 
-    const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-    
-    // We are using a powerful open-source model that has minimal restrictions
-    const AI_MODEL = 'nousresearch/hermes-3-llama-3.1-405b'; 
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at top right, #1e293b 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #0f172a 0%, transparent 40%);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
 
-    function addMessage(text, sender) {
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message');
-        msgDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
-        msgDiv.textContent = text;
-        chatContainer.appendChild(msgDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-    async function handleSend() {
-        const text = userInput.value.trim();
-        if (!text) return;
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 900px;
+            height: 95vh;
+            margin-top: 2.5vh;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
 
-        addMessage(text, 'user');
-        userInput.value = '';
-        typingIndicator.style.display = 'block';
+        header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.2);
+        }
 
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${API_KEY}`,
-                    'HTTP-Referer': 'https://your-github-pages-url.com', // Optional
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({
-                    model: AI_MODEL,
-                    messages: [{ role: "user", content: text }]
-                })
-            });
+        header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--border-glow);
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
 
-            if (!response.ok) throw new Error('API Error');
+        #chat-container {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 15px 20px;
+            border-radius: 12px;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-out forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background: var(--user-msg);
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+        }
+
+        .ai-message {
+            background: var(--ai-msg);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #input-container {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            gap: 15px;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: rgba(0, 0, 0, 0.3);
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #user-input:focus {
+            border-color: var(--border-glow);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        }
+
+        #send-btn {
+            padding: 0 30px;
+            border: none;
+            border-radius: 8px;
+            background: var(--user-msg);
+            color: white;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.3s;
+        }
+
+        #send-btn:hover {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        #send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .typing-indicator {
+            align-self: flex-start;
+            color: var(--text-muted);
+            font-style: italic;
+            font-size: 0.9rem;
+            display: none;
+            padding: 0 20px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>Nexus Core</h1>
+        </header>
+
+        <div id="chat-container">
+            <div class="message ai-message">System online. Uplink established. How can I assist you today?</div>
+        </div>
+        
+        <div id="typing" class="typing-indicator">Nexus is processing...</div>
+
+        <div id="input-container">
+            <input type="text" id="user-input" placeholder="Initiate command..." autocomplete="off">
+            <button id="send-btn">SEND</button>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const typingIndicator = document.getElementById('typing');
+
+        // ==========================================
+        // INSERT YOUR API KEY HERE
+        // ==========================================
+        const API_KEY = 'sk-abcdef1234567890abcdef1234567890abcdef12'; 
+        const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+        const AI_MODEL = 'nousresearch/hermes-3-llama-3.1-405b'; 
+        // ==========================================
+
+        function addMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message');
+            msgDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
             
-            const data = await response.json();
+            // Basic formatting to handle line breaks
+            msgDiv.innerHTML = text.replace(/\n/g, '<br>');
             
-            typingIndicator.style.display = 'none';
-            // Extract the text from the API response
-            if(data.choices && data.choices[0] && data.choices[0].message) {
-                addMessage(data.choices[0].message.content, 'ai');
-            } else {
-                addMessage('[System Error: Unexpected API response format.]', 'ai');
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function handleSend() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // Display user message
+            addMessage(text, 'user');
+            userInput.value = '';
+            
+            // Show typing indicator
+            typingIndicator.style.display = 'block';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            if (API_KEY === 'YOUR_OPENROUTER_API_KEY_HERE') {
+                typingIndicator.style.display = 'none';
+                addMessage('[SYSTEM ERROR]: You need to replace "YOUR_OPENROUTER_API_KEY_HERE" in the code with your actual key from OpenRouter.ai.', 'ai');
+                return;
             }
 
-        } catch (error) {
-            typingIndicator.style.display = 'none';
-            console.error('Error:', error);
-            addMessage('[System Error: Could not connect to API. Check your API key and network.]', 'ai');
-        }
-    }
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({
+                        model: AI_MODEL,
+                        messages: [{ role: "user", content: text }]
+                    })
+                });
 
-    sendBtn.addEventListener('click', handleSend);
-    userInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleSend();
-    });
-</script>
+                if (!response.ok) throw new Error('API Connection Failed');
+                
+                const data = await response.json();
+                typingIndicator.style.display = 'none';
+                
+                if(data.choices && data.choices[0] && data.choices[0].message) {
+                    addMessage(data.choices[0].message.content, 'ai');
+                } else {
+                    addMessage('[SYSTEM ERROR]: Unexpected response format from AI core.', 'ai');
+                }
+
+            } catch (error) {
+                typingIndicator.style.display = 'none';
+                console.error('Error:', error);
+                addMessage('[SYSTEM ERROR]: Connection lost. Check your API key and internet connection.', 'ai');
+            }
+        }
+
+        sendBtn.addEventListener('click', handleSend);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSend();
+        });
+    </script>
+</body>
+</html>
