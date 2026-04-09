@@ -197,7 +197,7 @@
         // ==========================================
         // INSERT YOUR API KEY HERE
         // ==========================================
-        const API_KEY = 'sk-abcdef1234567890abcdef1234567890abcdef12'; 
+        const API_KEY = 'YOUR_OPENROUTER_API_KEY_HERE'; 
         const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
         const AI_MODEL = 'nousresearch/hermes-3-llama-3.1-405b'; 
         // ==========================================
@@ -226,7 +226,7 @@
             typingIndicator.style.display = 'block';
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
-            if (API_KEY === 'YOUR_OPENROUTER_API_KEY_HERE') {
+            if (API_KEY === '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') {
                 typingIndicator.style.display = 'none';
                 addMessage('[SYSTEM ERROR]: You need to replace "YOUR_OPENROUTER_API_KEY_HERE" in the code with your actual key from OpenRouter.ai.', 'ai');
                 return;
